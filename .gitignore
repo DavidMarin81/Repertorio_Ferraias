@@ -1,0 +1,22 @@
+# .NET
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Rider / VSCode
+.idea/
+.vscode/
+
+# Android
+.gradle/
+build/
+local.properties
+*.iml
+
+# Mac / Windows
+.DS_Store
+Thumbs.db
