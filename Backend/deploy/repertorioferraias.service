@@ -1,0 +1,20 @@
+[Unit]
+Description=Repertorio Ferraias API
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/repertorio-ferraias
+ExecStart=/usr/bin/dotnet /var/www/repertorio-ferraias/RepertorioFerraias.dll
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+SyslogIdentifier=repertorio-ferraias
+User=www-data
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+Environment=MongoDb__ConnectionString=
+Environment=MongoDb__DatabaseName=repertorio_ferraias
+Environment=MongoDb__CollectionName=piezas
+
+[Install]
+WantedBy=multi-user.target

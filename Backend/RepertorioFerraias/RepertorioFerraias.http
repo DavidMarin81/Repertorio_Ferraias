@@ -1,0 +1,6 @@
+@RepertorioFerraias_HostAddress = http://localhost:5160
+
+GET {{RepertorioFerraias_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
