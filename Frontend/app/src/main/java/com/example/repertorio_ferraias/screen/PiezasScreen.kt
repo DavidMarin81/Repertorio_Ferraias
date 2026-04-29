@@ -47,12 +47,15 @@ import com.example.repertorio_ferraias.models.Estilo
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.consumeWindowInsets
-
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,11 +65,16 @@ fun PiezasScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+    var piezaEnEdicion by remember { mutableStateOf<PiezaDto?>(null) }
+    var piezaAEliminar by remember { mutableStateOf<PiezaDto?>(null) }
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddSheet = true }
+                onClick = {
+                    piezaEnEdicion = null
+                    showAddSheet = true
+                }
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -100,7 +108,14 @@ fun PiezasScreen(
                     piezas = successState.piezas,
                     modifier = Modifier
                         .padding(innerPadding)
-                        .consumeWindowInsets(innerPadding)
+                        .consumeWindowInsets(innerPadding),
+                    onEdit = { pieza ->
+                        piezaEnEdicion = pieza
+                        showAddSheet = true
+                    },
+                    onDelete = { pieza ->
+                        piezaAEliminar = pieza
+                    }
                 )
             }
         }
@@ -112,17 +127,62 @@ fun PiezasScreen(
             sheetState = sheetState
         ) {
             AddPiezaSheet(
-                onDismiss = { showAddSheet = false },
-                onSave = { titulo, estilo, puntuacion ->
-                    viewModel.crearPieza(
-                        titulo = titulo,
-                        estilo = estilo,
-                        puntuacion = puntuacion
-                    )
+                piezaAEditar = piezaEnEdicion,
+                onDismiss = {
                     showAddSheet = false
+                    piezaEnEdicion = null
+                },
+                onSave = { titulo, estilo, puntuacion ->
+                    if (piezaEnEdicion == null) {
+                        viewModel.crearPieza(
+                            titulo = titulo,
+                            estilo = estilo,
+                            puntuacion = puntuacion
+                        )
+                    } else {
+                        viewModel.actualizarPieza(
+                            id = piezaEnEdicion!!.id,
+                            titulo = titulo,
+                            estilo = estilo,
+                            puntuacion = puntuacion
+                        )
+                    }
+
+                    showAddSheet = false
+                    piezaEnEdicion = null
                 }
             )
+
         }
+    }
+
+    piezaAEliminar?.let { pieza ->
+        AlertDialog(
+            onDismissRequest = { piezaAEliminar = null },
+            title = {
+                Text("Eliminar pieza")
+            },
+            text = {
+                Text("¿Quieres eliminar \"${pieza.titulo}\"?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.borrarPieza(pieza.id)
+                        piezaAEliminar = null
+                    }
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { piezaAEliminar = null }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
@@ -156,10 +216,12 @@ fun ErrorScreen(message: String, modifier: Modifier = Modifier) {
 @Composable
 fun PiezasList(
     piezas: List<PiezaDto>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onEdit: (PiezaDto) -> Unit,
+    onDelete: (PiezaDto) -> Unit
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 16.dp,
             top = 16.dp,
@@ -169,45 +231,108 @@ fun PiezasList(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(piezas) { pieza ->
-            PiezaItem(pieza)
-        }
-    }
-}
-
-@Composable
-fun PiezaItem(pieza: PiezaDto) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Row {
-                Text(
-                    text = pieza.titulo + " ⭐".repeat(pieza.puntuacion),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-
-            Text(
-                text = "${pieza.estilo}",
-                style = MaterialTheme.typography.bodyMedium
+            PiezaItem(
+                pieza = pieza,
+                onEdit = { onEdit(pieza) },
+                onDelete = { onDelete(pieza) }
             )
         }
     }
 }
 
+@Composable
+fun PiezaItem(
+    pieza: PiezaDto,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val colorFondo = colorFondoPorEstilo(pieza.estilo)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = colorFondo
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = pieza.titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Surface(
+                    color = Color.White,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "⭐".repeat(pieza.puntuacion),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (pieza.estilo == "Muineira") "Muiñeira" else pieza.estilo,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar pieza"
+                        )
+                    }
+
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Eliminar pieza"
+                        )
+                    }
+                }
+            }
+
+        }
+
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPiezaSheet(
+    piezaAEditar: PiezaDto?,
     onDismiss: () -> Unit,
     onSave: (String, String, Int) -> Unit
 ) {
-    var titulo by remember { mutableStateOf("") }
-    var estiloSeleccionado by remember { mutableStateOf<Estilo?>(null) }
+    var titulo by remember { mutableStateOf(piezaAEditar?.titulo ?: "") }
+    var estiloSeleccionado by remember {
+        mutableStateOf(
+            piezaAEditar?.estilo?.let { Estilo.valueOf(it) }
+        )
+    }
     var expanded by remember { mutableStateOf(false) }
-    var puntuacionSeleccionada by remember { mutableStateOf(1) }
+    var puntuacionSeleccionada by remember {
+        mutableStateOf(piezaAEditar?.puntuacion ?: 1)
+    }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
@@ -218,7 +343,7 @@ fun AddPiezaSheet(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Nueva pieza",
+            text = if (piezaAEditar == null) "Nueva pieza" else "Editar pieza",
             style = MaterialTheme.typography.titleLarge
         )
 
@@ -337,12 +462,25 @@ fun AddPiezaSheet(
                     }
                 }
             ) {
-                Text("Guardar")
+                Text(if (piezaAEditar == null) "Guardar" else "Actualizar")
             }
 
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+fun colorFondoPorEstilo(estilo: String): Color {
+    return when (estilo) {
+        "Muineira" -> Color(0xFF2E7D32).copy(alpha = 0.18f)
+        "Xota" -> Color(0xFFD84315).copy(alpha = 0.18f)
+        "Pasodobre" -> Color(0xFF1565C0).copy(alpha = 0.18f)
+        "Rumba" -> Color(0xFF8E24AA).copy(alpha = 0.18f)
+        "Pasacorredoira" -> Color(0xFF00897B).copy(alpha = 0.18f)
+        "Mazurca" -> Color(0xFFF9A825).copy(alpha = 0.18f)
+        "Outros" -> Color(0xFF6D4C41).copy(alpha = 0.18f)
+        else -> Color.LightGray
     }
 }
 

@@ -43,11 +43,7 @@ class PiezasViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             try {
-                val piezasActuales = repository.getPiezas()
-                val nuevoId = (piezasActuales.maxOfOrNull { it.id } ?: 0) + 1
-
                 val request = CreatePiezaRequest(
-                    id = nuevoId,
                     titulo = titulo,
                     estilo = estilo,
                     puntuacion = puntuacion
@@ -62,5 +58,44 @@ class PiezasViewModel : ViewModel() {
             }
         }
     }
+
+    fun actualizarPieza(
+        id: String,
+        titulo: String,
+        estilo: String,
+        puntuacion: Int
+    ) {
+        viewModelScope.launch {
+            try {
+                val request = CreatePiezaRequest(
+                    titulo = titulo,
+                    estilo = estilo,
+                    puntuacion = puntuacion
+                )
+
+                repository.updatePieza(id, request)
+                cargarPiezas()
+            } catch (e: Exception) {
+                _uiState.value = PiezasUiState.Error(
+                    e.message ?: "Ha ocurrido un error al actualizar la pieza"
+                )
+            }
+        }
+    }
+
+    fun borrarPieza(id: String) {
+        viewModelScope.launch {
+            try {
+                repository.deletePieza(id)
+                cargarPiezas()
+            } catch (e: Exception) {
+                _uiState.value = PiezasUiState.Error(
+                    e.message ?: "Ha ocurrido un error al borrar la pieza"
+                )
+            }
+        }
+    }
+
+
 
 }

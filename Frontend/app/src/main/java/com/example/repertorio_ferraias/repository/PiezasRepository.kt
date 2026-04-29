@@ -12,4 +12,12 @@ class PiezasRepository {
     suspend fun createPieza(request: CreatePiezaRequest): PiezaDto {
         return RetrofitClient.api.createPieza(request)
     }
+
+    suspend fun updatePieza(id: String, request: CreatePiezaRequest) {
+        RetrofitClient.api.updatePieza(id, request)
+    }
+
+    suspend fun deletePieza(id: String) {
+        RetrofitClient.api.deletePieza(id)
+    }
 }
