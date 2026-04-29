@@ -1,15 +1,9 @@
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 using System.ComponentModel.DataAnnotations;
 
 namespace RepertorioFerraias.Models
 {
-    public class Pieza
+    public class CreateOrUpdatePiezaRequest
     {
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string? Id { get; set; }
-
         [Required(ErrorMessage = "El titulo es obligatorio.")]
         public string Titulo { get; set; } = string.Empty;
 
@@ -18,16 +12,5 @@ namespace RepertorioFerraias.Models
 
         [Range(1, 5)]
         public int Puntuacion { get; set; }
-    }
-
-    public enum Estilo
-    {
-        Muineira,
-        Xota,
-        Pasodobre,
-        Rumba,
-        Pasacorredoira,
-        Mazurca,
-        Outros
     }
 }

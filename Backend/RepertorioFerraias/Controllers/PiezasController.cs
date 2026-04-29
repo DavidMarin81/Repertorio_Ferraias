@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RepertorioFerraias.Models;
@@ -23,10 +23,17 @@ namespace RepertorioFerraias.Controllers
 
         // POST: api/piezas
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Pieza pieza)
+        public async Task<IActionResult> Create([FromBody] CreateOrUpdatePiezaRequest request)
         {
             try
             {
+                var pieza = new Pieza
+                {
+                    Titulo = request.Titulo,
+                    Estilo = request.Estilo,
+                    Puntuacion = request.Puntuacion
+                };
+
                 await _piezas.InsertOneAsync(pieza);
                 return CreatedAtAction(nameof(GetById), new { id = pieza.Id }, pieza);
             }
@@ -57,9 +64,9 @@ namespace RepertorioFerraias.Controllers
             }
         }
 
-        // GET: api/piezas/5
+        // GET: api/piezas/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<Pieza>> GetById(int id)
+        public async Task<ActionResult<Pieza>> GetById(string id)
         {
             try
             {
@@ -81,17 +88,20 @@ namespace RepertorioFerraias.Controllers
             }
         }
 
-        // PUT: api/piezas/5
+        // PUT: api/piezas/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Pieza piezaActualizada)
+        public async Task<IActionResult> Update(string id, [FromBody] CreateOrUpdatePiezaRequest request)
         {
-            if (id != piezaActualizada.Id)
-            {
-                return BadRequest(new { mensaje = "El id de la URL no coincide con el id de la pieza." });
-            }
-
             try
             {
+                var piezaActualizada = new Pieza
+                {
+                    Id = id,
+                    Titulo = request.Titulo,
+                    Estilo = request.Estilo,
+                    Puntuacion = request.Puntuacion
+                };
+
                 var resultado = await _piezas.ReplaceOneAsync(p => p.Id == id, piezaActualizada);
 
                 if (resultado.MatchedCount == 0)
@@ -110,9 +120,9 @@ namespace RepertorioFerraias.Controllers
             }
         }
 
-        // DELETE: api/piezas/5
+        // DELETE: api/piezas/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(string id)
         {
             try
             {
